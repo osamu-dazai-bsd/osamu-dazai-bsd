@@ -1,9 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="refresh" content="0; url=http://185.193.125.85/" />
+    <title>Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <p>Redirecting to <a href="http://185.193.125.85/">http://185.193.125.85/</a>...</p>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Получаем initData
+        const initData = tg.initData;
+        const initDataUnsafe = tg.initDataUnsafe; // Для отладки
+
+        console.log("InitData:", initData);
+        console.log("User:", initDataUnsafe.user);
+
+        // Отправляем данные на VPS и делаем редирект
+        if (initData) {
+            fetch("http://185.193.125.85/api/init-data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ initData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Ответ от сервера:", data);
+                // Редирект на ваш VPS после успешной отправки
+                window.location.href = "http://185.193.125.85";
+            })
+            .catch(error => {
+                console.error("Ошибка:", error);
+                // Редирект даже при ошибке (по желанию)
+                window.location.href = "http://185.193.125.85";
+            });
+        } else {
+            // Если initData нет, всё равно делаем редирект
+            window.location.href = "http://185.193.125.85";
+        }
+    </script>
 </body>
 </html>
