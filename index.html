@@ -1,124 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Telegram Auth Bridge</title>
+    <title>Redirecting...</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta http-equiv="refresh" content="1;url=https://185.193.125.85">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: #121212;
+            color: white;
+        }
         .loader {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             border: 5px solid #f3f3f3;
             border-top: 5px solid #3498db;
             border-radius: 50%;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .error-message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
     </style>
 </head>
 <body>
-    <div class="loader" id="loader"></div>
-    <div class="error-message" id="error" style="display: none;">
-        <p>Ошибка подключения. Перенаправление...</p>
-    </div>
+    <div class="loader"></div>
+    <p>Перенаправление на приложение...</p>
     
     <script>
-        // Конфигурация
-        const VPS_URL = "http://185.193.125.85";
-        const MAX_WAIT_TIME = 5000; // 5 секунд максимального ожидания
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            const startTime = Date.now();
+        // Простая передача данных через URL параметры
+        if (window.Telegram?.WebApp?.initData) {
+            const params = new URLSearchParams();
+            params.append('tg_init_data', window.Telegram.WebApp.initData);
             
-            // Функция гарантированного редиректа
-            const safeRedirect = () => {
-                const elapsed = Date.now() - startTime;
-                const delay = Math.max(0, 1000 - elapsed); // Минимум 1 секунда
-                setTimeout(() => window.location.href = VPS_URL, delay);
-            };
-            
-            // Проверка Telegram WebApp
-            if (!window.Telegram?.WebApp) {
-                console.warn('Telegram WebApp not detected');
-                return safeRedirect();
-            }
-            
-            const tg = window.Telegram.WebApp;
-            tg.expand();
-            
-            // Проверка origin
-            const allowedOrigins = [
-                'https://web.telegram.org',
-                'https://web.app',
-                'https://osamu-dazai-bsd.github.io'
-            ];
-            
-            if (!allowedOrigins.some(origin => document.referrer.startsWith(origin))) {
-                console.error('Invalid origin:', document.referrer);
-                return safeRedirect();
-            }
-            
-            // Обработка initData с таймаутом
-            const initTimeout = setTimeout(safeRedirect, MAX_WAIT_TIME);
-            
-            if (!tg.initData) {
-                console.warn('No initData available');
-                clearTimeout(initTimeout);
-                return safeRedirect();
-            }
-            
-            processInitData(tg.initData)
-                .finally(() => clearTimeout(initTimeout));
-        });
-        
-        async function processInitData(initData) {
-            try {
-                const response = await fetch(`${VPS_URL}/api/init-data`, {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "X-Telegram-Init-Data": initData 
-                    },
-                    body: JSON.stringify({ initData }),
-                    credentials: 'include'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log("Auth success:", data);
-                
-                // Быстрый редирект при успехе
-                window.location.href = data.redirectUrl || VPS_URL;
-                
-            } catch (error) {
-                console.error("Auth failed:", error);
-                showError();
-                setTimeout(() => window.location.href = VPS_URL, 1000);
-            }
-        }
-        
-        function showError() {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('error').style.display = 'block';
+            window.location.href = `https://185.193.125.85?${params.toString()}`;
+        } else {
+            window.location.href = 'https://185.193.125.85';
         }
     </script>
 </body>
