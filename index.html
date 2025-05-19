@@ -1,42 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Telegram Mini App</title>
+    <title>Telegram Auth Bridge</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
+    <div class="loader"></div>
+    
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // Проверяем, что открыто в Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.expand();
+            
+            // Валидация origin (важно для безопасности)
+            const allowedOrigins = [
+                'https://web.telegram.org',
+                'https://web.app',
+                'https://osamu-dazai-bsd.github.io'
+            ];
+            
+            if (!allowedOrigins.includes(document.referrer)) {
+                console.error('Invalid origin:', document.referrer);
+                redirectToVps();
+                return;
+            }
 
-        // Получаем initData
-        const initData = tg.initData;
-        const initDataUnsafe = tg.initDataUnsafe; // Для отладки
-
-        console.log("InitData:", initData);
-        console.log("User:", initDataUnsafe.user);
-
-        // Отправляем данные на VPS и делаем редирект
-        if (initData) {
-            fetch("http://185.193.125.85/api/init-data", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ initData })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Ответ от сервера:", data);
-                // Редирект на ваш VPS после успешной отправки
-                window.location.href = "http://185.193.125.85";
-            })
-            .catch(error => {
-                console.error("Ошибка:", error);
-                // Редирект даже при ошибке (по желанию)
-                window.location.href = "http://185.193.125.85";
-            });
+            processInitData(tg.initData);
         } else {
-            // Если initData нет, всё равно делаем редирект
-            window.location.href = "http://185.193.125.85";
+            console.warn('Not in Telegram WebApp environment');
+            redirectToVps();
+        }
+
+        async function processInitData(initData) {
+            if (!initData) {
+                console.warn('No initData available');
+                return redirectToVps();
+            }
+
+            try {
+                const response = await fetch("https://185.193.125.85/api/init-data", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Telegram-Init-Data": initData 
+                    },
+                    body: JSON.stringify({ initData }),
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Server response:", data);
+                
+                // Добавляем задержку для гарантированной передачи данных
+                setTimeout(() => {
+                    redirectToVps(data.user);
+                }, 300);
+                
+            } catch (error) {
+                console.error("Request failed:", error);
+                redirectToVps();
+            }
+        }
+
+        function redirectToVps(userData = null) {
+            const baseUrl = "https://185.193.125.85";
+            const params = new URLSearchParams();
+            
+            if (userData) {
+                params.append('tg_user', JSON.stringify(userData));
+            }
+            
+            window.location.href = `${baseUrl}?${params.toString()}`;
         }
     </script>
 </body>
